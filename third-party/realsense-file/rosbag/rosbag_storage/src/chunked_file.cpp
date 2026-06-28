@@ -35,6 +35,10 @@
 #include "rosbag/chunked_file.h"
 
 #include <iostream>
+#ifdef _WIN32
+#include <io.h>      // for _chsize
+#define ftruncate _chsize
+#endif
 
 //#include <ros/ros.h>
 #ifdef _WIN32
