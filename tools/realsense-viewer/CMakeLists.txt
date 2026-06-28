@@ -53,218 +53,243 @@ if(BUILD_GRAPHICAL_EXAMPLES)
     ../../third-party/implot/implot_internal.h
     ../../third-party/implot/implot_items.cpp
 
-)
-
-SET(DELAYED
-    realsense2d.dll
-    realsense2-gld.dll
-    realsense2.dll
-    realsense2-gl.dll
-)
-
-if(DEFINED OpenCV_DIR  AND  IS_DIRECTORY ${OpenCV_DIR})
-
-    find_package(OpenCV REQUIRED)
-
-    get_property(deps VARIABLE PROPERTY DEPENDENCIES)
-    set(DEPENDENCIES ${deps} ${OpenCV_LIBS})
-    include_directories( ../../wrappers/opencv )
-
-    list(APPEND DELAYED
-        opencv_highgui341.dll
-        opencv_core341.dll
-        opencv_imgproc341.dll
-        opencv_dnn341.dll
-        opencv_highgui341d.dll
-        opencv_core341d.dll
-        opencv_imgproc341d.dll
-        opencv_dnn341d.dll
     )
 
-endif()
+    if(MSVC)
+        SET(DELAYED
+            realsense2d.dll
+            realsense2-gld.dll
+            realsense2.dll
+            realsense2-gl.dll
+        )
+    elseif(MINGW)
+        set(DELAYED realsense2.dll realsense2-gl.dll)
+    endif()
 
-include(../../wrappers/openvino/check_vino_version.cmake)
+    if(DEFINED OpenCV_DIR  AND  IS_DIRECTORY ${OpenCV_DIR})
 
-if(DEFINED INTEL_OPENVINO_DIR  AND  IS_DIRECTORY ${INTEL_OPENVINO_DIR})
+        find_package(OpenCV REQUIRED)
 
-    message( STATUS "Enabling OpenVINO face-detection for realsense-viewer ..." )
-    set(IE_ROOT_DIR "${INTEL_OPENVINO_DIR}/inference_engine")
-    include(${INTEL_OPENVINO_DIR}/inference_engine/share/InferenceEngineConfig.cmake)
+        get_property(deps VARIABLE PROPERTY DEPENDENCIES)
+        set(DEPENDENCIES ${deps} ${OpenCV_LIBS})
+        include_directories( ../../wrappers/opencv )
 
-    get_property(deps VARIABLE PROPERTY DEPENDENCIES)
+        list(APPEND DELAYED
+            opencv_highgui341.dll
+            opencv_core341.dll
+            opencv_imgproc341.dll
+            opencv_dnn341.dll
+            opencv_highgui341d.dll
+            opencv_core341d.dll
+            opencv_imgproc341d.dll
+            opencv_dnn341d.dll
+        )
 
-    check_vino_version()
-    if(OPENVINO2019)
-        set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES} ie_cpu_extension)
-    elseif(OPENVINO_NGRAPH)
-        include(${INTEL_OPENVINO_DIR}/deployment_tools/ngraph/cmake/ngraphConfig.cmake)
-        set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES} ${NGRAPH_LIBRARIES})
+    endif()
+
+    include(../../wrappers/openvino/check_vino_version.cmake)
+
+    if(DEFINED INTEL_OPENVINO_DIR  AND  IS_DIRECTORY ${INTEL_OPENVINO_DIR})
+
+        message( STATUS "Enabling OpenVINO face-detection for realsense-viewer ..." )
+        set(IE_ROOT_DIR "${INTEL_OPENVINO_DIR}/inference_engine")
+        include(${INTEL_OPENVINO_DIR}/inference_engine/share/InferenceEngineConfig.cmake)
+
+        get_property(deps VARIABLE PROPERTY DEPENDENCIES)
+
+        check_vino_version()
+        if(OPENVINO2019)
+            set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES} ie_cpu_extension)
+        elseif(OPENVINO_NGRAPH)
+            include(${INTEL_OPENVINO_DIR}/deployment_tools/ngraph/cmake/ngraphConfig.cmake)
+            set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES} ${NGRAPH_LIBRARIES})
+        else()
+            set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES})
+        endif()
+
+        include_directories( ../../wrappers/openvino )
+        include_directories( ../../wrappers/opencv )
+        include_directories( ${InferenceEngine_INCLUDE_DIRS} )
+
+        if(OPENVINO2019)
+        # We need additional access to ext_list.hpp, for CPU extension support:
+        include_directories( "${IE_ROOT_DIR}/src/extension" )
+        elseif(OPENVINO_NGRAPH)
+        include_directories( "${INTEL_OPENVINO_DIR}/deployment_tools/ngraph/include" )
+        endif()
+
+        set(OPENVINO_FILES
+            ../../wrappers/openvino/rs-vino/base-detection.cpp
+            ../../wrappers/openvino/rs-vino/base-detection.h
+            ../../wrappers/openvino/rs-vino/object-detection.cpp
+            ../../wrappers/openvino/rs-vino/object-detection.h
+            ../../wrappers/openvino/rs-vino/detected-object.cpp
+            ../../wrappers/openvino/rs-vino/detected-object.h
+            ../../wrappers/openvino/rs-vino/openvino-helpers.h
+            )
+
+        if(OPENVINO2019)
+            set(OPENVINO_FILES ${OPENVINO_FILES} "${IE_ROOT_DIR}/src/extension/ext_list.hpp")
+        endif()
+
+        set(RS_VIEWER_CPP
+            ${RS_VIEWER_CPP}
+            openvino-face-detection.cpp
+            ${OPENVINO_FILES}
+            )
+
+        include(../../wrappers/openvino/dl_vino_model.cmake)
+        # Download model files -- these will go into build/tools/realsense-viewer, which is also
+        # where the sample is run from in Visual Studio
+
+        if(OPENVINO2019)
+        dl_vino_model( "README.txt"                              "789e144d6cafa379c8437d2a6860829b6d935a8d" )
+        dl_vino_model( "face-detection-adas-0001.bin"            "1625f05ada1d8e78e36856def7124f78cd0a6c2a" )
+        dl_vino_model( "face-detection-adas-0001.xml"            "11c36f6e4488b2f5437ccff9f330d02545087ab3" )
+        else()
+        # Newer model files with IRv10, 2020.1 and later
+        dl_vino_model( "README.txt"                              "789e144d6cafa379c8437d2a6860829b6d935a8d" )
+        dl_vino_model( "face-detection-adas-0001.bin"  "065e9015297c7adbc650ebfc17176477cd0a4279" )
+        dl_vino_model( "face-detection-adas-0001.xml"  "331be642a248213f586ec1d1b71c223435a437e3" )
+        endif()
+
+        list(APPEND DELAYED
+            cpu_extension.dll
+            inference_engine.dll
+            libmmd.dll
+            mkl_tiny_tbb.dll
+            MKLDNNPlugin.dll
+            opencv_core412.dll
+            opencv_imgproc412.dll
+            svml_dispmd.dll
+            tbb.dll
+            tbbmalloc.dll
+        )
+    endif()
+
+    # config-ui
+    target_sources( ${PROJECT_NAME} PRIVATE ${RS_VIEWER_CPP} viewer-main.cpp )
+    if(WIN32)
+        target_sources( ${PROJECT_NAME} PRIVATE ../../common/windows-app-bootstrap.cpp )
+
+        source_group("3rd Party" FILES
+            ../../third-party/tinyfiledialogs/tinyfiledialogs.c
+            ../../third-party/tinyfiledialogs/tinyfiledialogs.h
+            ../../third-party/imgui/imgui.cpp
+            ../../third-party/imgui/imgui_draw.cpp
+            ../../third-party/imgui/imgui_impl_opengl3.cpp
+            ../../third-party/imgui/imgui_impl_glfw.cpp
+            ../../third-party/imgui/imgui-fonts-karla.hpp
+            ../../third-party/imgui/imgui-fonts-fontawesome.hpp
+            )
+
+        source_group("Resources" FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/res/realsense-app.rc)
+
+        source_group("OpenVINO" FILES ${OPENVINO_FILES})
+
+        if(MSVC)
+            #list(TRANSFORM DELAYED PREPEND " /DELAYLOAD:")  - Requires cmake v3.12
+            PREPEND(DELAYED " /DELAYLOAD:" ${DELAYED})
+            string(REPLACE ";" " " LD_FLAGS_STR "${DELAYED}")
+        elseif(MINGW)
+            string(REGEX REPLACE "/bin/[^/]+$" "" _msys_env "${CMAKE_C_COMPILER}")
+            string(REGEX REPLACE "/[^/]+$" "" MSYS2_ROOT "${_msys_env}")
+            set(SHELL_EXECUTABLE "${MSYS2_ROOT}/usr/bin/sh.exe")
+            set(GREP_EXECUTABLE "${MSYS2_ROOT}/usr/bin/grep.exe")
+            set(TR_EXECUTABLE "${MSYS2_ROOT}/usr/bin/tr.exe")
+            set(CUT_EXECUTABLE "${MSYS2_ROOT}/usr/bin/cut.exe")
+            if(NOT EXISTS "${SHELL_EXECUTABLE}")
+                message(FATAL_ERROR "sh not found at ${SHELL_EXECUTABLE}")
+            endif()
+
+            set(LD_FLAGS_STR "")
+            foreach(_dll IN LISTS DELAYED)
+                string(REGEX REPLACE "\\.dll$" "" _dll_name ${_dll})
+                if(TARGET ${_dll_name})
+                    set(_imp_lib "$<TARGET_LINKER_FILE:${_dll_name}>")
+                    set(_delay_lib "${CMAKE_CURRENT_BINARY_DIR}/lib${_dll_name}_delay.a")
+                    add_custom_command(
+                        OUTPUT ${_delay_lib}
+                        COMMAND "${SHELL_EXECUTABLE}" -c "echo EXPORTS > \"${_delay_lib}.def\" && \"${CMAKE_NM}\" -g --defined-only \"${_imp_lib}\" | \"${GREP_EXECUTABLE}\" ' T ' | \"${TR_EXECUTABLE}\" -s ' ' | \"${CUT_EXECUTABLE}\" -d' ' -f3 >> \"${_delay_lib}.def\""
+                        COMMAND "${CMAKE_DLLTOOL}" --input-def "${_delay_lib}.def" --output-delaylib "${_delay_lib}" --dllname ${_dll}
+                        DEPENDS ${_imp_lib}
+                        COMMENT "Creating delay-load import library for ${_dll_name}"
+                        VERBATIM
+                    )
+                    add_custom_target(generate_${PROJECT_NAME}_${_dll_name}_delaylib DEPENDS ${_delay_lib})
+                    add_dependencies(${PROJECT_NAME} generate_${PROJECT_NAME}_${_dll_name}_delaylib)
+                    target_link_libraries(${PROJECT_NAME} ${_delay_lib})
+                    add_dependencies(${PROJECT_NAME} ${_dll_name})
+                else()
+                    message(WARNING "Target ${_dll_name} not defined, delay-load will be skipped")
+                endif()
+            endforeach()
+            target_link_libraries(${PROJECT_NAME} -ldelayimp)
+        endif()
+    endif()
+
+    if(BUILD_ROSBAG2)
+        target_compile_definitions(realsense-viewer PRIVATE BUILD_ROSBAG2)
+    endif()
+
+    if(MINGW)
+        # The delayed loading library has been added via target_link_libraries in the MinGW branch; 
+        # the original import library is no longer included here to ensure the exe does not have a static dependency on realsense2-gl.
+        set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads rsutils)
+        target_sources(${PROJECT_NAME} PRIVATE "${REPO_ROOT}/third-party/easyloggingpp/src/easylogging++.cc")
     else()
-        set(DEPENDENCIES ${deps} ${InferenceEngine_LIBRARIES})
+        set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads realsense2-gl)
     endif()
 
-    include_directories( ../../wrappers/openvino )
-    include_directories( ../../wrappers/opencv )
-    include_directories( ${InferenceEngine_INCLUDE_DIRS} )
+    if(MINGW)
+        list(REMOVE_ITEM DEPENDENCIES realsense2 realsense2-gl)
+        target_include_directories(
+            ${PROJECT_NAME} PRIVATE
+            $<TARGET_PROPERTY:realsense2,INTERFACE_INCLUDE_DIRECTORIES>
+        )
+    endif()
+
+    include(../tools_common.cmake)
+    tools_target_config(${PROJECT_NAME})
+
+    if(MINGW)
+        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14)
+    endif()
 
     if(OPENVINO2019)
-    # We need additional access to ext_list.hpp, for CPU extension support:
-    include_directories( "${IE_ROOT_DIR}/src/extension" )
-    elseif(OPENVINO_NGRAPH)
-    include_directories( "${INTEL_OPENVINO_DIR}/deployment_tools/ngraph/include" )
+        target_compile_definitions(realsense-viewer PRIVATE OPENVINO2019)
     endif()
 
-    set(OPENVINO_FILES
-        ../../wrappers/openvino/rs-vino/base-detection.cpp
-        ../../wrappers/openvino/rs-vino/base-detection.h
-        ../../wrappers/openvino/rs-vino/object-detection.cpp
-        ../../wrappers/openvino/rs-vino/object-detection.h
-        ../../wrappers/openvino/rs-vino/detected-object.cpp
-        ../../wrappers/openvino/rs-vino/detected-object.h
-        ../../wrappers/openvino/rs-vino/openvino-helpers.h
+    if(OPENVINO_NGRAPH)
+        target_compile_definitions(realsense-viewer PRIVATE OPENVINO_NGRAPH)
+    endif()
+
+    source_group("SW-Update" FILES ${SW_UPDATE_FILES})
+
+    include_directories(
+        ../../common
+        ../../third-party
+        ../../third-party/tinyfiledialogs
+        ${GLFW_SOURCE_DIR}/include
+        ../../third-party/imgui
+        ../../third-party/implot
+        ../../third-party/glad
         )
 
-    if(OPENVINO2019)
-        set(OPENVINO_FILES ${OPENVINO_FILES} "${IE_ROOT_DIR}/src/extension/ext_list.hpp")
-    endif()
 
-    set(RS_VIEWER_CPP
-        ${RS_VIEWER_CPP}
-        openvino-face-detection.cpp
-        ${OPENVINO_FILES}
-        )
-
-    include(../../wrappers/openvino/dl_vino_model.cmake)
-    # Download model files -- these will go into build/tools/realsense-viewer, which is also
-    # where the sample is run from in Visual Studio
-
-    if(OPENVINO2019)
-    dl_vino_model( "README.txt"                              "789e144d6cafa379c8437d2a6860829b6d935a8d" )
-    dl_vino_model( "face-detection-adas-0001.bin"            "1625f05ada1d8e78e36856def7124f78cd0a6c2a" )
-    dl_vino_model( "face-detection-adas-0001.xml"            "11c36f6e4488b2f5437ccff9f330d02545087ab3" )
-    else()
-    # Newer model files with IRv10, 2020.1 and later
-    dl_vino_model( "README.txt"                              "789e144d6cafa379c8437d2a6860829b6d935a8d" )
-    dl_vino_model( "face-detection-adas-0001.bin"  "065e9015297c7adbc650ebfc17176477cd0a4279" )
-    dl_vino_model( "face-detection-adas-0001.xml"  "331be642a248213f586ec1d1b71c223435a437e3" )
-    endif()
-
-    list(APPEND DELAYED
-        cpu_extension.dll
-        inference_engine.dll
-        libmmd.dll
-        mkl_tiny_tbb.dll
-        MKLDNNPlugin.dll
-        opencv_core412.dll
-        opencv_imgproc412.dll
-        svml_dispmd.dll
-        tbb.dll
-        tbbmalloc.dll
+    install(
+        TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
-endif()
-
-# config-ui
-target_sources( ${PROJECT_NAME} PRIVATE ${RS_VIEWER_CPP} viewer-main.cpp )
-if(WIN32)
-    target_sources( ${PROJECT_NAME} PRIVATE ../../common/windows-app-bootstrap.cpp )
-
-    source_group("3rd Party" FILES
-        ../../third-party/tinyfiledialogs/tinyfiledialogs.c
-        ../../third-party/tinyfiledialogs/tinyfiledialogs.h
-        ../../third-party/imgui/imgui.cpp
-        ../../third-party/imgui/imgui_draw.cpp
-        ../../third-party/imgui/imgui_impl_opengl3.cpp
-        ../../third-party/imgui/imgui_impl_glfw.cpp
-        ../../third-party/imgui/imgui-fonts-karla.hpp
-        ../../third-party/imgui/imgui-fonts-fontawesome.hpp
-        )
-
-    source_group("Resources" FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/res/realsense-app.rc)
-
-    source_group("OpenVINO" FILES ${OPENVINO_FILES})
-
-    #list(TRANSFORM DELAYED PREPEND " /DELAYLOAD:")  - Requires cmake v3.12
-    PREPEND(DELAYED " /DELAYLOAD:" ${DELAYED})
-    string(REPLACE ";" " " LD_FLAGS_STR "${DELAYED}")
-endif()
-
-if(BUILD_ROSBAG2)
-    target_compile_definitions(realsense-viewer PRIVATE BUILD_ROSBAG2)
-endif()
-
-set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads realsense2-gl)
-
-if(BUILD_WITH_CLOSE_RANGE_DEPTH)
-    # librs_depth_range.so is loaded at runtime via dlopen (see rs-depth-range-loader.h);
-    # the binary starts normally when the library is absent — the Improved Close Range Depth toggle is greyed out.
-    # Install the library with: sudo dpkg -i librealsense2-enhanced-depth-*.deb
-    set(CLOSE_RANGE_DEPTH_ROOT "/opt/librealsense2-enhanced-depth" CACHE PATH
-        "Root of the librealsense2-enhanced-depth installation (default: /opt/librealsense2-enhanced-depth)")
-
-    find_path(CLOSE_RANGE_DEPTH_INCLUDE_DIR
-        NAMES rs_depth_range.hpp
-        PATHS "${CLOSE_RANGE_DEPTH_ROOT}/include"
-        NO_DEFAULT_PATH
-    )
-    # rs_depth_calibration.hpp is also required; both ship in the same package directory
-    find_file(CLOSE_RANGE_DEPTH_CALIBRATION_HEADER
-        NAMES rs_depth_calibration.hpp
-        PATHS "${CLOSE_RANGE_DEPTH_ROOT}/include"
-        NO_DEFAULT_PATH
+    #https://cmake.org/cmake/help/latest/command/install.html
+    install(DIRECTORY presets/
+        DESTINATION $ENV{HOME}/Documents/librealsense2/presets
+        FILES_MATCHING PATTERN "*.preset"
     )
 
-    if(NOT CLOSE_RANGE_DEPTH_INCLUDE_DIR)
-        message(FATAL_ERROR "rs_depth_range.hpp not found under ${CLOSE_RANGE_DEPTH_ROOT}/include -- "
-            "install librealsense2-enhanced-depth or set CLOSE_RANGE_DEPTH_ROOT")
+    if(BUILD_VIEWER_TESTS)
+        include(tests/viewer_tests.cmake)
     endif()
-    if(NOT CLOSE_RANGE_DEPTH_CALIBRATION_HEADER)
-        message(FATAL_ERROR "rs_depth_calibration.hpp not found under ${CLOSE_RANGE_DEPTH_ROOT}/include -- "
-            "install librealsense2-enhanced-depth or set CLOSE_RANGE_DEPTH_ROOT")
-    endif()
-
-    target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_WITH_CLOSE_RANGE_DEPTH)
-    target_include_directories(${PROJECT_NAME} PRIVATE "${CLOSE_RANGE_DEPTH_INCLUDE_DIR}")
-    message(STATUS "Improved Close Range Depth enabled (runtime dlopen)")
-    message(STATUS "  include : ${CLOSE_RANGE_DEPTH_INCLUDE_DIR}")
-endif()
-
-include(../tools_common.cmake)
-tools_target_config(${PROJECT_NAME})
-
-if(OPENVINO2019)
-    target_compile_definitions(realsense-viewer PRIVATE OPENVINO2019)
-endif()
-
-if(OPENVINO_NGRAPH)
-    target_compile_definitions(realsense-viewer PRIVATE OPENVINO_NGRAPH)
-endif()
-
-source_group("SW-Update" FILES ${SW_UPDATE_FILES})
-
-include_directories(
-    ../../common
-    ../../third-party
-    ../../third-party/tinyfiledialogs
-    ${GLFW_SOURCE_DIR}/include
-    ../../third-party/imgui
-    ../../third-party/implot
-    ../../third-party/glad
-    )
-
-
-install(
-    TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-#https://cmake.org/cmake/help/latest/command/install.html
-install(DIRECTORY presets/
-    DESTINATION $ENV{HOME}/Documents/librealsense2/presets
-    FILES_MATCHING PATTERN "*.preset"
-)
-
-if(BUILD_VIEWER_TESTS)
-    include(tests/viewer_tests.cmake)
-endif()
 endif()
