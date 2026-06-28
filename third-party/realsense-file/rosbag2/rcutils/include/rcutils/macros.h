@@ -15,6 +15,23 @@
 #ifndef RCUTILS__MACROS_H_
 #define RCUTILS__MACROS_H_
 
+// Provide alternative definitions for MSVC SAL annotations for MinGW
+#ifndef _Check_return_
+#define _Check_return_
+#endif
+
+#ifndef _Printf_format_string_
+#define _Printf_format_string_
+#endif
+
+#ifndef _Ret_maybenull_
+#define _Ret_maybenull_
+#endif
+
+#ifndef _Success_
+#define _Success_(x)
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
