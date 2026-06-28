@@ -62,7 +62,6 @@ const char * get_string( rs2_stream value )
     CASE( SAFETY )
     CASE( OCCUPANCY )
     CASE( LABELED_POINT_CLOUD )
-    CASE( OBJECT_DETECTION )
     default:
         assert( ! is_valid( value ) );
         return UNKNOWN_VALUE;
@@ -88,7 +87,6 @@ char const * get_abbr_string( rs2_stream value)
     case RS2_STREAM_SAFETY: return "S";
     case RS2_STREAM_OCCUPANCY: return "O";
     case RS2_STREAM_LABELED_POINT_CLOUD: return "LPC";
-    case RS2_STREAM_OBJECT_DETECTION: return "OD";
     default:
         assert( !is_valid( value ) );
         return "?";
@@ -415,11 +413,6 @@ const char * get_string( rs2_extension value )
     CASE( SUPPORTED_EMBEDDED_FILTERS )
     CASE( DECIMATION_EMBEDDED_FILTER )
     CASE( TEMPORAL_EMBEDDED_FILTER )
-    CASE( INFERENCE_FRAME )
-    CASE( OBJECT_DETECTION_FRAME )
-    CASE( INFERENCE_SENSOR )
-    CASE( OBJECT_DETECTION_SENSOR )
-    CASE( INFERENCE_PROFILE )
     default:
         assert( ! is_valid( value ) );
         return UNKNOWN_VALUE;
@@ -676,7 +669,6 @@ const char * get_string( rs2_format value )
     CASE( Y411 )
     CASE( Y16I )
     CASE( M420 )
-    CASE( NV12 )
     default:
         assert( ! is_valid( value ) );
         return UNKNOWN_VALUE;
@@ -1023,7 +1015,7 @@ const char * rs2_l500_visual_preset_to_string( rs2_l500_visual_preset preset ) {
 const char * rs2_sensor_mode_to_string( rs2_sensor_mode mode ) { return librealsense::get_string( mode ); }
 const char * rs2_ambient_light_to_string( rs2_ambient_light ambient ) { return librealsense::get_string( ambient ); }
 const char * rs2_digital_gain_to_string( rs2_digital_gain gain ) { return librealsense::get_string( gain ); }
-const char * rs2_cah_trigger_to_string( int mode ) { return "DEPRECATED as of 2.46"; }
+extern "C" const char * rs2_cah_trigger_to_string( int mode ) { return "DEPRECATED as of 2.46"; }
 const char * rs2_calibration_type_to_string( rs2_calibration_type type ) { return librealsense::get_string( type ); }
 const char * rs2_calibration_status_to_string( rs2_calibration_status status ) { return librealsense::get_string( status ); }
 const char * rs2_host_perf_mode_to_string( rs2_host_perf_mode mode ) { return librealsense::get_string( mode ); }
