@@ -19,6 +19,10 @@ extern "C"
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#undef UNICODE
+#undef _UNICODE
+#endif
 #ifndef _WIN32
 #include <dlfcn.h>
 #else
