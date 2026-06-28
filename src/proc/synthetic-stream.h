@@ -19,7 +19,7 @@ namespace librealsense
 
     // A synthetic source is simply a wrapper around a new frame_source and its exposure thru the rs2_source APIs
     //
-    class synthetic_source : public synthetic_source_interface
+    class LRS_EXTENSION_API synthetic_source : public synthetic_source_interface
     {
     public:
         synthetic_source( frame_source & actual );
