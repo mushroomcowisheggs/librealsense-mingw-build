@@ -15,10 +15,7 @@ function(get_foonathan_memory)
 
     FetchContent_Declare(
       foonathan_memory
-      GIT_REPOSITORY https://github.com/foonathan/memory.git
-      GIT_TAG        "v0.7-3"
-      GIT_SHALLOW ON    # No history needed
-      SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/third-party/foonathan_memory
+      SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party_src/memory-0.7-3"
     )
 
     # Always a static library

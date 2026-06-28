@@ -10,7 +10,7 @@ endif()
 if(NOT TARGET sqlite3)
     include(ExternalProject)
     ExternalProject_Add(sqlite3
-        URL ${SQLITE3_DOWNLOAD_URL}
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party_src/sqlite-amalgamation-3490100"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""

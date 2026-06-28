@@ -89,22 +89,36 @@ endmacro()
 
 macro(os_target_config)
     message(STATUS "Building with SSE optimizations")
-    add_definitions(-D__SSSE3__ -D_CRT_SECURE_NO_WARNINGS)
+    if(MSVC)
+        add_definitions(-D__SSSE3__ -D_CRT_SECURE_NO_WARNINGS)
+    else()
+        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    endif()
 
     if(FORCE_RSUSB_BACKEND)
         if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
             message("Preparing Windows 7 drivers" )
-            make_directory(${CMAKE_CURRENT_BINARY_DIR}/drivers/)
-            file(GLOB DRIVERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/src/win7/drivers/" "${CMAKE_CURRENT_SOURCE_DIR}/src/win7/drivers/*")
-            foreach(item IN LISTS DRIVERS)
-                message("Copying ${CMAKE_CURRENT_SOURCE_DIR}/src/win7/drivers/${item} to ${CMAKE_CURRENT_BINARY_DIR}/drivers/" )
-                configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/win7/drivers/${item}" "${CMAKE_CURRENT_BINARY_DIR}/drivers/${item}" COPYONLY)
-            endforeach()
-        endif()
+            set(DRIVER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/win7/drivers")
+            set(DRIVER_DST_DIR "${CMAKE_CURRENT_BINARY_DIR}/drivers")
+            make_directory(${DRIVER_DST_DIR})
+            file(GLOB DRIVER_FILES RELATIVE ${DRIVER_SRC_DIR} ${DRIVER_SRC_DIR}/*)
 
-        add_custom_target(realsense-driver ALL DEPENDS ${DRIVERS})
-        add_dependencies(${LRS_TARGET} realsense-driver)
-        set_target_properties (realsense-driver PROPERTIES FOLDER Library)
+            foreach(item IN LISTS DRIVER_FILES)
+                set(src_file "${DRIVER_SRC_DIR}/${item}")
+                set(dst_file "${DRIVER_DST_DIR}/${item}")
+                add_custom_command(
+                    OUTPUT ${dst_file}
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src_file} ${dst_file}
+                    DEPENDS ${src_file}
+                    COMMENT "Copying driver file ${item}"
+                )
+                list(APPEND DRIVER_OUTPUTS ${dst_file})
+            endforeach()
+
+            add_custom_target(realsense-driver ALL DEPENDS ${DRIVER_OUTPUTS})
+            add_dependencies(${LRS_TARGET} realsense-driver)
+            set_target_properties (realsense-driver PROPERTIES FOLDER Library)
+        endif()
     endif()
 
     get_target_property(LRS_FILES ${LRS_TARGET} SOURCES)

@@ -3,8 +3,7 @@
 if(NOT TARGET yaml_cpp)
     include(ExternalProject)
     ExternalProject_Add(yaml_cpp
-        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG yaml-cpp-0.7.0
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party_src/yaml-cpp-yaml-cpp-0.7.0"
         UPDATE_COMMAND ""
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""

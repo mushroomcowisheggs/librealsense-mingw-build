@@ -3,13 +3,11 @@ include(ExternalProject)
 ExternalProject_Add(
     libusb
     PREFIX libusb
-    GIT_REPOSITORY "https://github.com/libusb/libusb-cmake.git"
-    GIT_TAG "v1.0.27-1" # "v1.0.27-1" 
 
     UPDATE_COMMAND ""
     PATCH_COMMAND ""
 
-    SOURCE_DIR "third-party/libusb/"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party_src/libusb-cmake-1.0.27-1/"
     CMAKE_ARGS -DCMAKE_CXX_STANDARD_LIBRARIES=${CMAKE_CXX_STANDARD_LIBRARIES}
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -25,7 +23,7 @@ ExternalProject_Add(
 
 add_library(usb INTERFACE)
 target_include_directories(usb INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/third-party/libusb/libusb>)
-target_link_libraries(usb INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/libusb_install/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX})
+target_link_libraries(usb INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/libusb_install/lib/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(USE_EXTERNAL_USB ON) # INTERFACE libraries can't have real deps, so targets that link with usb need to also depend on libusb
 
 set_target_properties( libusb PROPERTIES FOLDER "3rd Party")
