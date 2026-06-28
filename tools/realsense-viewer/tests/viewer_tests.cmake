@@ -34,7 +34,7 @@ target_include_directories(realsense-viewer-tests PRIVATE
     ${TE_DIR} ${TE_DIR}/thirdparty/Str)
 
 # Suppress warnings in third-party test engine sources
-if(MSVC)
+if(MSVC AND NOT MINGW)
     set_source_files_properties(${TE_SOURCES} PROPERTIES COMPILE_OPTIONS "/W0")
 else()
     set_source_files_properties(${TE_SOURCES} PROPERTIES COMPILE_OPTIONS "-w")
