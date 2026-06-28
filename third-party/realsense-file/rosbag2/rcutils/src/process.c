@@ -20,6 +20,16 @@ extern "C"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+// Provide a Windows-compatible implementation of basename
+static inline char* rcutils_basename(char* path) {
+    char* base = strrchr(path, '\\');
+    if (!base) base = strrchr(path, '/');
+    if (!base) return path;
+    return base + 1;
+}
+#define basename rcutils_basename
+#endif
 
 #if defined _WIN32 || defined __CYGWIN__
 // When building with MSVC 19.28.29333.0 on Windows 10 (as of 2020-11-11),
