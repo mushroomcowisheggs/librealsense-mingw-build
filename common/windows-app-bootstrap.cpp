@@ -145,6 +145,7 @@ int run_main(int argv, const char** argc)
     SetUnhandledExceptionFilter(CrashHandler);
 
     int res = 0;
+#ifdef _MSC_VER
     __try
     {
         res = main(argv, argc);
@@ -153,6 +154,22 @@ int run_main(int argv, const char** argc)
     {
         res = EXIT_FAILURE;
     }
+#else
+    try
+    {
+        res = main(argv, argc);
+    }
+    catch (const std::exception& e)
+    {
+        report_error(std::string("Unhandled C++ exception: ") + e.what());
+        res = EXIT_FAILURE;
+    }
+    catch (...)
+    {
+        report_error("Unhandled unknown C++ exception");
+        res = EXIT_FAILURE;
+    }
+#endif
     return res;
 }
 
