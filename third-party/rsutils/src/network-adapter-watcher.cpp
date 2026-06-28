@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include <iphlpapi.h>
+#include <thread>
 #pragma comment( lib, "iphlpapi.lib" )
 
 #else
@@ -23,7 +24,6 @@
 #include <errno.h>
 #include <poll.h>
 #include <thread>
-#include <cstring>
 
 #endif
 #endif  // ! __APPLE__ && ! __ANDROID__
