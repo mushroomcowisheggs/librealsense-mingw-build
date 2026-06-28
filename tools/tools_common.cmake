@@ -13,7 +13,11 @@ macro(tools_target_config _target)
         target_sources(${_target} PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h
             ${CMAKE_CURRENT_SOURCE_DIR}/res/realsense-app.rc)
-        set_target_properties(${_target} PROPERTIES LINK_FLAGS "/ignore:4199 ${LD_FLAGS_STR}")
+        if(MSVC)
+            set_target_properties(${_target} PROPERTIES LINK_FLAGS "/ignore:4199 ${LD_FLAGS_STR}")
+        elseif(MINGW)
+        # Achieved by importing the library, and the generation is the responsibility of the caller.
+        endif()
     else()
         target_link_libraries(${_target} dl)
     endif()
