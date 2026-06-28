@@ -62,6 +62,9 @@ include(src/CMakeLists.txt)
 include(third-party/CMakeLists.txt)
 
 target_link_libraries( ${LRS_TARGET} PUBLIC rsutils )
+if (MINGW OR WIN32)
+    target_link_libraries(${LRS_TARGET} PRIVATE setupapi cfgmgr32 winusb)
+endif()
 
 if(BUILD_WITH_DDS)
     message(STATUS "Building with FastDDS")
@@ -88,6 +91,38 @@ global_target_config()
 
 include(CMake/install_config.cmake)
 
+function(create_delayload_importlib _dllname _outlib)
+    cmake_parse_arguments(DELAY "" "IMPLIB" "" ${ARGN})
+    set(_input_lib "")
+    if(DELAY_IMPLIB AND EXISTS "${DELAY_IMPLIB}")
+        set(_input_lib "${DELAY_IMPLIB}")
+    endif()
+
+    if(NOT _input_lib)
+        message(WARNING "Import library for ${_dllname} not found or not provided, delay-load will be skipped")
+        set(${_outlib} "" PARENT_SCOPE)
+        return()
+    endif()
+
+    set(_def_file "${CMAKE_CURRENT_BINARY_DIR}/${_dllname}.def")
+    add_custom_command(
+        OUTPUT ${_def_file}
+        COMMAND ${CMAKE_NM} -g --defined-only ${_input_lib} | grep " T " | awk "{print $$3}" > ${_def_file}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating exports def for ${_dllname}"
+    )
+
+    set(_delay_lib "${CMAKE_CURRENT_BINARY_DIR}/lib${_dllname}_delay.a")
+    add_custom_command(
+        OUTPUT ${_delay_lib}
+        COMMAND ${CMAKE_DLLTOOL} --input-def ${_def_file} --output-delaylib ${_delay_lib} --dllname ${_dllname}.dll
+        DEPENDS ${_def_file}
+        COMMENT "Creating delay-load import library for ${_dllname}"
+    )
+
+    set(${_outlib} ${_delay_lib} PARENT_SCOPE)
+endfunction()
+
 add_subdirectory(wrappers)
 if ( ( BUILD_EXAMPLES OR BUILD_PC_STITCHING ) AND BUILD_GLSL_EXTENSIONS )
     find_package(glfw3 3.3 QUIET)
@@ -95,15 +130,27 @@ if ( ( BUILD_EXAMPLES OR BUILD_PC_STITCHING ) AND BUILD_GLSL_EXTENSIONS )
         message(STATUS "GLFW 3.3 not found; using internal version")
         set(GLFW_INSTALL ON CACHE BOOL "" FORCE)
         add_subdirectory(third-party/glfw)
-    endif()
+		if(TARGET glfw)
+			target_compile_options(glfw PRIVATE -mssse3)
+		endif()
+	endif()
     add_subdirectory(src/gl)
+	if(TARGET realsense2-gl)
+		target_compile_options(realsense2-gl PRIVATE -mssse3)
+	endif()
 endif()
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
     add_subdirectory(tools)
+    if(TARGET realsense-viewer)
+        target_compile_options(realsense-viewer PRIVATE -mssse3)
+    endif()
 elseif(BUILD_TOOLS)
     add_subdirectory(tools)
+    if(TARGET realsense-viewer)
+        target_compile_options(realsense-viewer PRIVATE -mssse3)
+    endif()
 endif()
 
 if(BUILD_UNIT_TESTS)
