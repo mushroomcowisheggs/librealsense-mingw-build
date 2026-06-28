@@ -12,8 +12,6 @@ set(REALSENSE_GL_CPP
     yuy2rgb-gl.cpp
     m420-to-rgb-gl.h
     m420-to-rgb-gl.cpp
-    nv12-to-rgb-gl.h
-    nv12-to-rgb-gl.cpp
     y4112rgb-gl.h
     y4112rgb-gl.cpp
     pointcloud-gl.h
@@ -60,6 +58,7 @@ source_group("API" FILES
     realsense-gl.def)
 
 add_library(${LRS_GL_TARGET} ${REALSENSE_GL_CPP})
+target_link_libraries(realsense2-gl PRIVATE realsense2)
 
 if(BUILD_SHARED_LIBS)
     add_definitions(-DSHARED_LIBS)
