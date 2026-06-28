@@ -19,12 +19,16 @@ include(../tools_common.cmake)
 
 include(../../common/CMakeLists.txt)
 
-SET(DELAYED
-    realsense2d.dll
-    realsense2-gld.dll
-    realsense2.dll
-    realsense2-gl.dll
-)
+if(MSVC)
+    SET(DELAYED
+        realsense2d.dll
+        realsense2-gld.dll
+        realsense2.dll
+        realsense2-gl.dll
+    )
+elseif(MINGW)
+    set(DELAYED realsense2.dll realsense2-gl.dll)
+endif()
 
 if(BUILD_GRAPHICAL_EXAMPLES)
     set(RS_QUALITY_TOOL_CPP
@@ -81,10 +85,46 @@ if(BUILD_GRAPHICAL_EXAMPLES)
                             ../../third-party/tinyfiledialogs
                             ${CMAKE_CURRENT_SOURCE_DIR}/res/)
 
-        #list(TRANSFORM DELAYED PREPEND " /DELAYLOAD:")
-        PREPEND(DELAYED " /DELAYLOAD:" ${DELAYED})
-        #infoValue(DELAYED)
-        string(REPLACE ";" " " LD_FLAGS_STR "${DELAYED}")
+        if(MSVC)
+            #list(TRANSFORM DELAYED PREPEND " /DELAYLOAD:")
+            PREPEND(DELAYED " /DELAYLOAD:" ${DELAYED})
+            #infoValue(DELAYED)
+            string(REPLACE ";" " " LD_FLAGS_STR "${DELAYED}")
+        elseif(MINGW)
+            string(REGEX REPLACE "/bin/[^/]+$" "" _msys_env "${CMAKE_C_COMPILER}")
+            string(REGEX REPLACE "/[^/]+$" "" MSYS2_ROOT "${_msys_env}")
+            set(SHELL_EXECUTABLE "${MSYS2_ROOT}/usr/bin/sh.exe")
+            set(GREP_EXECUTABLE "${MSYS2_ROOT}/usr/bin/grep.exe")
+            set(TR_EXECUTABLE "${MSYS2_ROOT}/usr/bin/tr.exe")
+            set(CUT_EXECUTABLE "${MSYS2_ROOT}/usr/bin/cut.exe")
+            if(NOT EXISTS "${SHELL_EXECUTABLE}")
+                message(FATAL_ERROR "sh not found at ${SHELL_EXECUTABLE}")
+            endif()
+
+            set(LD_FLAGS_STR "")
+            foreach(_dll IN LISTS DELAYED)
+                string(REGEX REPLACE "\\.dll$" "" _dll_name ${_dll})
+                if(TARGET ${_dll_name})
+                    set(_imp_lib "$<TARGET_LINKER_FILE:${_dll_name}>")
+                    set(_delay_lib "${CMAKE_CURRENT_BINARY_DIR}/lib${_dll_name}_delay.a")
+                    add_custom_command(
+                        OUTPUT ${_delay_lib}
+                        COMMAND "${SHELL_EXECUTABLE}" -c "echo EXPORTS > \"${_delay_lib}.def\" && \"${CMAKE_NM}\" -g --defined-only \"${_imp_lib}\" | \"${GREP_EXECUTABLE}\" ' T ' | \"${TR_EXECUTABLE}\" -s ' ' | \"${CUT_EXECUTABLE}\" -d' ' -f3 >> \"${_delay_lib}.def\""
+                        COMMAND "${CMAKE_DLLTOOL}" --input-def "${_delay_lib}.def" --output-delaylib "${_delay_lib}" --dllname ${_dll}
+                        DEPENDS ${_imp_lib}
+                        COMMENT "Creating delay-load import library for ${_dll_name}"
+                        VERBATIM
+                    )
+                    add_custom_target(generate_${PROJECT_NAME}_${_dll_name}_delaylib DEPENDS ${_delay_lib})
+                    add_dependencies(${PROJECT_NAME} generate_${PROJECT_NAME}_${_dll_name}_delaylib)
+                    target_link_libraries(${PROJECT_NAME} ${_delay_lib})
+                    add_dependencies(${PROJECT_NAME} ${_dll_name})
+                else()
+                    message(WARNING "Target ${_dll_name} not defined, delay-load will be skipped")
+                endif()
+            endforeach()
+            target_link_libraries(${PROJECT_NAME} -ldelayimp)
+        endif()
 
     else()
         target_sources( ${PROJECT_NAME}
@@ -101,8 +141,29 @@ if(BUILD_GRAPHICAL_EXAMPLES)
 
     source_group("SW-Update" FILES ${SW_UPDATE_FILES})
 
-    set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads realsense2-gl)
+    if(MINGW)
+        # The delayed loading library has been added via target_link_libraries in the MinGW branch; 
+        # the original import library is no longer included here to ensure the exe does not have a static dependency on realsense2-gl.
+        # rsutils and easyloggingpp are essential libraries for graphical tools.
+        set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads rsutils)
+        target_sources(${PROJECT_NAME} PRIVATE "${REPO_ROOT}/third-party/easyloggingpp/src/easylogging++.cc")
+    else()
+        set(RS_VIEWER_LIBS ${GTK3_LIBRARIES} Threads::Threads realsense2-gl)
+    endif()
+    
+    if(MINGW)
+        list(REMOVE_ITEM DEPENDENCIES realsense2 realsense2-gl)
+        target_include_directories(
+            ${PROJECT_NAME} PRIVATE
+            $<TARGET_PROPERTY:realsense2,INTERFACE_INCLUDE_DIRECTORIES>
+        )
+    endif()
+    
     tools_target_config(${PROJECT_NAME})
+
+    if(MINGW)
+        set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14)
+    endif()
 
     install(
         TARGETS
