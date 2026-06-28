@@ -57,6 +57,12 @@ if(LRS_TRY_USE_AVX)
     set_source_files_properties(image-avx.cpp PROPERTIES COMPILE_FLAGS -mavx2)
 endif()
 
+# Enable the SSSE3 instruction set for SSE-related files
+set_source_files_properties(
+    "${CMAKE_CURRENT_LIST_DIR}/proc/sse/sse-align.cpp"
+    PROPERTIES COMPILE_FLAGS "-mssse3"
+)
+
 if(BUILD_SHARED_LIBS)
     target_sources(${LRS_TARGET} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/realsense.def")
 endif()
@@ -103,7 +109,6 @@ target_sources(${LRS_TARGET}
         "${CMAKE_CURRENT_LIST_DIR}/frame.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/points.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/labeled-points.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/object-detection-frame.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/to-string.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/eth-config-device.cpp"
 
@@ -179,8 +184,6 @@ target_sources(${LRS_TARGET}
         "${CMAKE_CURRENT_LIST_DIR}/composite-frame.h"
         "${CMAKE_CURRENT_LIST_DIR}/points.h"
         "${CMAKE_CURRENT_LIST_DIR}/labeled-points.h"
-        "${CMAKE_CURRENT_LIST_DIR}/inference-frame.h"
-        "${CMAKE_CURRENT_LIST_DIR}/object-detection-frame.h"
         "${CMAKE_CURRENT_LIST_DIR}/depth-sensor.h"
         "${CMAKE_CURRENT_LIST_DIR}/color-sensor.h"
         "${CMAKE_CURRENT_LIST_DIR}/callback-invocation.h"
