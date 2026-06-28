@@ -1,15 +1,15 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "resource.h"
+#include "./resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "winres.h"
+#include "res/winres_constants.h"
 
-#include "../include/librealsense2/rs.h"
+#include "librealsense2/h/rs_version.h"
 
 #define STR(x) #x
 #define STR_VERSION(MAJVER,MINVER,FIXNUM,BLDID) \
@@ -99,7 +99,7 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "RealSense Corporation"
             VALUE "FileDescription", "RealSense Viewer"
-            VALUE "FileVersion", RS2_API_MAJOR_VERSION,RS2_API_MINOR_VERSION,RS2_API_PATCH_VERSION,RS2_API_BUILD_VERSION
+            VALUE "FileVersion", STR_VERSION(RS2_API_MAJOR_VERSION,RS2_API_MINOR_VERSION,RS2_API_PATCH_VERSION,RS2_API_BUILD_VERSION)
             VALUE "InternalName", "realsense-veiwer.exe"
             VALUE "LegalCopyright", "Copyright RealSense Inc 2018-2025. All rights reserved."
             VALUE "OriginalFilename", "realsense-viewer.exe"
