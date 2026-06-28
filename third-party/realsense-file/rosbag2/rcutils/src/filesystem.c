@@ -16,6 +16,10 @@
 extern "C"
 {
 #endif
+#ifdef _WIN32
+#undef UNICODE
+#undef _UNICODE
+#endif
 #include "rcutils/filesystem.h"
 
 #include <errno.h>
