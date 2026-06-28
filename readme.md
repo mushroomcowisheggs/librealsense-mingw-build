@@ -1,3 +1,32 @@
+# Building librealsense under Mingw. 
+This is not yet fully completed and is only provided as a trial and reference for ideas.
+## cmd build example
+```cmd
+:: Firstly, create third-party_src folder and install third-party files manually and unpackage them to librealsense-2.58.1/third-party_src: 
+:: Catch2-3.4.0 
+:: curl-curl-8_8_0    https://github.com/curl/curl/releases/tag/curl-8_8_0
+:: Fast-CDR-1.0.25    https://github.com/eProsima/Fast-CDR/releases/tag/v1.0.25
+:: Fast-DDS-2.10.4-realsense    https://github.com/eProsima/Fast-DDS/releases/tag/v2.10.4
+:: json-3.12.0    https://github.com/nlohmann/json/releases/tag/v3.12.0
+:: libusb-cmake-1.0.27-1    https://github.com/libusb/libusb-cmake/releases/tag/v1.0.27-1
+:: memory-0.7-3    https://github.com/foonathan/memory/releases/tag/v0.7-3
+:: pybind11_json-0.2.15    https://github.com/pybind/pybind11_json/releases/tag/0.2.15
+:: pybind11-2.13.6    https://github.com/pybind/pybind11/releases/tag/v2.13.6
+:: sqlite-amalgamation-3490100    https://sqlite.org/2025/sqlite-amalgamation-3490100.zip
+:: yaml-cpp-yaml-cpp-0.7.0    https://github.com/jbeder/yaml-cpp/releases/tag/yaml-cpp-0.7.0
+
+:: Add gcc, etc. to PATH before building
+:: Change the paths below to your computer's installation folder path
+
+cd "E:/Users/UserName/Workspace/librealsense-2.58.1/build"
+set CC=gcc
+"D:\Program Files\msys64\ucrt64\bin\cmake.exe" .. -G "MinGW Makefiles" -DBUILD_CSHARP_BINDINGS=ON -DBUILD_UNITY_BINDINGS=ON -DBUILD_SHARED_LIBS=ON -DDOTNET_VERSION_LIBRARY=3.5 -DUNITY_PATH="F:/Program Files/Unity/Hub/Editor/2022.3.62f3c1/Editor/Unity.exe" -DFORCE_RSUSB_BACKEND=ON -DCMAKE_RC_COMPILER="E:/Users/UserName/Workspace/librealsense-2.58.1/build/rc_wrapper/rc_wrapper.bat"
+mingw32-make VERBOSE=1
+```
+
+
+
+
 <p align="center">
 <!-- Light mode -->
 <img src="doc/img/realsense-logo-light-mode.png#gh-light-mode-only" alt="Logo for light mode" width="30%"/>
